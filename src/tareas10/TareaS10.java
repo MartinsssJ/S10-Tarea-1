@@ -18,36 +18,39 @@ class servicioPedido{
     }
 }
 
-public class TareaS10 {
-    public static void main(String[] args) {
-        
-        servicioStock stock = new servicioStock();
-        servicioImpuesto impuesto = new servicioImpuesto();
-        servicioPedido pedido = new servicioPedido();
-        
-        String cliente="Juan Pérez";
-        String producto="Laptop";
-        int cantidad=2;
-        double precioUnitario=2500.0;
+class PedidoFacade {
+    private servicioStock stock = new servicioStock();
+    private servicioImpuesto impuesto = new servicioImpuesto();
+    private servicioPedido pedido = new servicioPedido();
 
-        if (!stock.validarStock(producto, cantidad)){
-            System.out.println("Error: sin stock.");
+    public void procesarPedido(String cliente, String producto, int cantidad, double precioUnitario) {
+        System.out.println("=== Procesando pedido ===");
+
+        if (!stock.validarStock(producto, cantidad)) {
+            System.out.println("Error: sin stock disponible.");
             return;
         }
 
         double subtotal=precioUnitario*cantidad;
-        double igv=subtotal*0.18;
-        double total=subtotal+ igv;
-        
+        double igv=impuesto.calcularIGV(subtotal);
+        double total=subtotal+igv;
+
         pedido.registrarPedido(cliente, producto, cantidad);
 
-        System.out.println("=== Pedido ===");
+        System.out.println("=== COMPROBANTE ===");
         System.out.println("Cliente: " + cliente);
         System.out.println("Producto: " + producto);
-        System.out.println("Cantidad: " + cantidad);
         System.out.println("Subtotal: S/ " + subtotal);
-        System.out.println("IGV (18%): S/ " + igv);
+        System.out.println("IGV: S/ " + igv);
         System.out.println("Total: S/ " + total);
     }
-    
+}
+
+public class TareaS10 {
+    public static void main(String[] args) {
+        
+        PedidoFacade pedidoFacade = new PedidoFacade();
+        pedidoFacade.procesarPedido("Martincito tu terror", "La play 4", 2, 1500.0);
+        
+    }
 }
