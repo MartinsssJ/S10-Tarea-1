@@ -1,8 +1,25 @@
 package tareas10;
 
+class LegacyBillingSystem {
+    public void generateLegacyInvoice(String cliente, String producto, double total) {
+        System.out.println("[LegacyBillingSystem] Factura antigua generada para " + cliente);
+    }
+}
+
+interface FacturaService {
+    void generarFactura(String cliente, String producto, double total);
+}
+
+class FacturaAdapter implements FacturaService {
+    
+    @Override
+    public void generarFactura(String cliente, String producto, double total){
+    }
+}
+
 class servicioStock{
     public boolean validarStock(String producto, int cantidad){
-        return cantidad>0 && cantidad<=10;
+        return cantidad>0 && cantidad<=15;
     }
 }
 
@@ -24,7 +41,7 @@ class PedidoFacade {
     private servicioPedido pedido = new servicioPedido();
 
     public void procesarPedido(String cliente, String producto, int cantidad, double precioUnitario) {
-        System.out.println("=== Procesando pedido ===");
+        System.out.println("----- Procesando pedido -----");
 
         if (!stock.validarStock(producto, cantidad)) {
             System.out.println("Error: sin stock disponible.");
@@ -37,7 +54,7 @@ class PedidoFacade {
 
         pedido.registrarPedido(cliente, producto, cantidad);
 
-        System.out.println("=== COMPROBANTE ===");
+        System.out.println("----- COMPROBANTE DE COMPRA -----");
         System.out.println("Cliente: " + cliente);
         System.out.println("Producto: " + producto);
         System.out.println("Subtotal: S/ " + subtotal);
