@@ -1,5 +1,22 @@
 package tareas10;
 
+import java.util.ArrayList;
+import java.util.List;
+
+class Pedido{
+    private String cliente;
+    private String producto;
+    private int cantidad;
+    private double subtotal;
+    private double igv;
+    private double total;
+}
+
+class PedidoRepository{
+    private List<Pedido> almacen;
+}
+
+
 class LegacyBillingSystem {
     public void generateLegacyInvoice(double total, String cliente) {
         System.out.println("-----[LegacyBillingSystem]-----");
