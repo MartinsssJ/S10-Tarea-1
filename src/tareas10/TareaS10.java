@@ -10,12 +10,37 @@ class Pedido{
     private double subtotal;
     private double igv;
     private double total;
+
+    public Pedido(String cliente, String producto, int cantidad, double subtotal, double igv, double total){
+        this.cliente = cliente;
+        this.producto = producto;
+        this.cantidad = cantidad;
+        this.subtotal = subtotal;
+        this.igv = igv;
+        this.total = total;
+    }
+
+    @Override
+    public String toString() {
+        return "Pedido{" + "cliente=" + cliente + ", producto=" + producto + ", cantidad=" + cantidad + ", subtotal=" + subtotal + ", igv=" + igv + ", total=" + total + '}';
+    }  
 }
 
 class PedidoRepository{
     private List<Pedido> almacen;
-}
+    
+    public PedidoRepository(){
+        this.almacen = new ArrayList<>();
+    }
+    
+    public void save(Pedido pedido) {
+        almacen.add(pedido);
+    }
 
+    public List<Pedido> findAll(){
+        return new ArrayList<>(almacen); 
+    }
+}
 
 class LegacyBillingSystem {
     public void generateLegacyInvoice(double total, String cliente) {
@@ -48,29 +73,50 @@ class ServicioStock{
     }
 }
 
-class ServicioImpuesto{
-    public double calcularIGV(double subtotal) {
-        return subtotal*0.18;
+interface ImpuestoStrategy {
+    double calcular(double subtotal);
+}
+
+class IGV18Strategy implements ImpuestoStrategy{
+    @Override
+    public double calcular(double subtotal){
+        return 0.18*subtotal;
     }
 }
 
+class Exonerado implements ImpuestoStrategy{
+    @Override
+    public double calcular(double subtotal){
+        return 0;
+    }
+}
+
+
 class ServicioPedido{
-    public void registrarPedido(String cliente, String producto, int cantidad){
-        System.out.println("Pedido registrado correctamente para " + cliente + ".");
+    private PedidoRepository repository;
+    
+    public ServicioPedido(PedidoRepository repository) {
+        this.repository = repository;
+    }
+    
+    public void registrarPedido(Pedido pedido){
+        repository.save(pedido);
+        System.out.println("Pedido registrado correctamente.");
     }
 }
 
 class PedidoFacade {
     
-    private ServicioStock serviciostock;
-    private ServicioImpuesto servicioimpuesto;        
+    private ServicioStock serviciostock;       
     private ServicioPedido serviciopedido;
     private FacturaService facturaservice;
+    private ImpuestoStrategy impuestostrategy;
+    private PedidoRepository pedidorepository;
 
     public PedidoFacade() {
+        this.pedidorepository = new PedidoRepository();
         this.serviciostock = new ServicioStock();
-        this.servicioimpuesto = new ServicioImpuesto();
-        this.serviciopedido = new ServicioPedido();
+        this.serviciopedido = new ServicioPedido(pedidorepository);
         this.facturaservice = new FacturaAdapter(new LegacyBillingSystem());
     }
     
