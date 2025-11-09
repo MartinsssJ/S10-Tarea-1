@@ -19,7 +19,7 @@ class Pedido{
         this.igv = igv;
         this.total = total;
     }
-
+    
     @Override
     public String toString() {
         return "Pedido{" + "cliente=" + cliente + ", producto=" + producto + ", cantidad=" + cantidad + ", subtotal=" + subtotal + ", igv=" + igv + ", total=" + total + '}';
@@ -47,6 +47,7 @@ class LegacyBillingSystem {
         System.out.println("-----[LegacyBillingSystem]-----");
         System.out.println("Factura generada para: " + cliente);
         System.out.println("Total: S/ " + total);
+        System.out.println();
     }
 }
 
@@ -73,7 +74,7 @@ class ServicioStock{
     }
 }
 
-interface ImpuestoStrategy {
+interface ImpuestoStrategy{
     double calcular(double subtotal);
 }
 
@@ -84,13 +85,12 @@ class IGV18Strategy implements ImpuestoStrategy{
     }
 }
 
-class Exonerado implements ImpuestoStrategy{
+class ExoneradoStrategy implements ImpuestoStrategy{
     @Override
     public double calcular(double subtotal){
         return 0;
     }
 }
-
 
 class ServicioPedido{
     private PedidoRepository repository;
@@ -101,7 +101,6 @@ class ServicioPedido{
     
     public void registrarPedido(Pedido pedido){
         repository.save(pedido);
-        System.out.println("Pedido registrado correctamente.");
     }
 }
 
@@ -120,6 +119,14 @@ class PedidoFacade {
         this.facturaservice = new FacturaAdapter(new LegacyBillingSystem());
     }
     
+    public void setImpuestoStrategy(ImpuestoStrategy strategy){
+        this.impuestostrategy=strategy;
+    }
+    
+    public PedidoRepository getPedidoRepository(){
+        return this.pedidorepository;
+    }
+    
     public void procesarPedido(String cliente, String producto, int cantidad, double precioUnitario) {
         System.out.println("----- Procesando pedido -----");
 
@@ -129,10 +136,12 @@ class PedidoFacade {
         }
 
         double subtotal=precioUnitario*cantidad;
-        double igv=servicioimpuesto.calcularIGV(subtotal);
+        double igv=impuestostrategy.calcular(subtotal);
         double total=subtotal+igv;
 
-        serviciopedido.registrarPedido(cliente, producto, cantidad);
+        Pedido nuevoPedido = new Pedido(cliente, producto, cantidad, subtotal, igv, total);
+        serviciopedido.registrarPedido(nuevoPedido);
+        System.out.println("Pedido guardado y registrado correctamente");
 
         System.out.println("----- COMPROBANTE DE COMPRA -----");
         System.out.println("Cliente: " + cliente);
@@ -149,8 +158,17 @@ class PedidoFacade {
 public class TareaS10 {
     public static void main(String[] args) {
         
-        PedidoFacade p = new PedidoFacade();
-        p.procesarPedido("Martin Jaime", "La play 4", 2, 1500.0);
+        PedidoFacade pf = new PedidoFacade();
         
+        pf.setImpuestoStrategy(new IGV18Strategy());
+        pf.procesarPedido("Manolito Sanchez", "Iphone 16", 1, 3200);
+        
+        pf.setImpuestoStrategy(new ExoneradoStrategy());
+        pf.procesarPedido("Martin Jaime", "La play 4", 2, 1500.0);
+        
+        System.out.println("Pedidos en repositorio:");
+        for (Pedido pedido : pf.getPedidoRepository().findAll()){
+            System.out.println(pedido);
+        }
     }
 }
