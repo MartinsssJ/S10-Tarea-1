@@ -20,10 +20,40 @@ class Pedido{
         this.total = total;
     }
     
+    public String getCliente(){ return cliente; }
+    public String getProducto(){ return producto; }
+    public int getCantidad(){ return cantidad; }
+    public double getTotal(){ return total; }
+    
     @Override
     public String toString() {
         return "Pedido{" + "cliente=" + cliente + ", producto=" + producto + ", cantidad=" + cantidad + ", subtotal=" + subtotal + ", igv=" + igv + ", total=" + total + '}';
     }  
+}
+
+interface Observer {
+    void notificar(Pedido pedido);
+}
+
+class ClienteObserver implements Observer{
+    @Override
+    public void notificar(Pedido pedido){
+        System.out.println("[Cliente] Pedido recibido para: " + pedido.getCliente());
+    }
+}
+
+class InventarioObserver implements Observer{
+    @Override
+    public void notificar(Pedido pedido){
+        System.out.println("[Inventario] Actualizando stock de: " + pedido.getProducto());
+    }
+}
+
+class LogObserver implements Observer{
+    @Override
+    public void notificar(Pedido pedido){
+        System.out.println("[Log] Registrado: " + pedido);
+    }
 }
 
 class PedidoRepository{
@@ -111,12 +141,24 @@ class PedidoFacade {
     private FacturaService facturaservice;
     private ImpuestoStrategy impuestostrategy;
     private PedidoRepository pedidorepository;
+    private List<Observer> observers;
 
     public PedidoFacade() {
         this.pedidorepository = new PedidoRepository();
         this.serviciostock = new ServicioStock();
         this.serviciopedido = new ServicioPedido(pedidorepository);
         this.facturaservice = new FacturaAdapter(new LegacyBillingSystem());
+        this.observers = new ArrayList<>();
+    }
+    
+    public void agregarObserver(Observer observer) {
+        observers.add(observer);
+    }
+    
+    public void notificarObservers(Pedido pedido) {
+        for (Observer observer : observers) {
+            observer.notificar(pedido);
+        }
     }
     
     public void setImpuestoStrategy(ImpuestoStrategy strategy){
@@ -141,7 +183,6 @@ class PedidoFacade {
 
         Pedido nuevoPedido = new Pedido(cliente, producto, cantidad, subtotal, igv, total);
         serviciopedido.registrarPedido(nuevoPedido);
-        System.out.println("Pedido guardado y registrado correctamente");
 
         System.out.println("----- COMPROBANTE DE COMPRA -----");
         System.out.println("Cliente: " + cliente);
@@ -152,6 +193,7 @@ class PedidoFacade {
         System.out.println("Total: S/ " + total);
         
         facturaservice.generarFactura(cliente, producto, total);
+        notificarObservers(nuevoPedido); //notificar observadores
     }
 }
 
@@ -159,6 +201,11 @@ public class TareaS10 {
     public static void main(String[] args) {
         
         PedidoFacade pf = new PedidoFacade();
+        
+        //se registran observadores
+        pf.agregarObserver(new ClienteObserver());
+        pf.agregarObserver(new InventarioObserver());
+        pf.agregarObserver(new LogObserver());
         
         pf.setImpuestoStrategy(new IGV18Strategy());
         pf.procesarPedido("Manolito Sanchez", "Iphone 16", 1, 3200);
