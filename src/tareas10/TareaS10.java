@@ -134,6 +134,30 @@ class ServicioPedido{
     }
 }
 
+class HiloProcesador extends Thread{
+    private String cliente;
+    private String producto;
+    private int cantidad;
+    private double precio;
+    private PedidoFacade facade;
+    
+    public HiloProcesador(String cliente, String producto, int cantidad, double precio, PedidoFacade facade){
+        this.cliente = cliente;
+        this.producto = producto;
+        this.cantidad = cantidad;
+        this.precio = precio;
+        this.facade = facade;
+    }
+    
+    @Override
+    public void run(){
+        System.out.println("[Hilo-" + getName() + "] Iniciando procesamiento...");
+        facade.procesarPedido(cliente, producto, cantidad, precio);
+        System.out.println("[Hilo-" + getName() + "] Completado");
+        System.out.println();
+    }
+}
+
 class PedidoFacade {
     
     private ServicioStock serviciostock;       
@@ -198,22 +222,25 @@ class PedidoFacade {
 }
 
 public class TareaS10 {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException{
         
         PedidoFacade pf = new PedidoFacade();
         
-        //se registran observadores
         pf.agregarObserver(new ClienteObserver());
         pf.agregarObserver(new InventarioObserver());
         pf.agregarObserver(new LogObserver());
         
         pf.setImpuestoStrategy(new IGV18Strategy());
-        pf.procesarPedido("Manolito Sanchez", "Iphone 16", 1, 3200);
+        HiloProcesador hilo1 = new HiloProcesador("Manolito Sanchez", "Iphone 16", 1, 3200, pf);
+        hilo1.start();
+        hilo1.join();
         
         pf.setImpuestoStrategy(new ExoneradoStrategy());
-        pf.procesarPedido("Martin Jaime", "La play 4", 2, 1500.0);
+        HiloProcesador hilo2 = new HiloProcesador("Martin Jaime", "La play 4", 2, 1500.0, pf);
+        hilo2.start();
+        hilo2.join();
         
-        System.out.println("Pedidos en repositorio:");
+        System.out.println("\n--- Pedidos guardados ---");
         for (Pedido pedido : pf.getPedidoRepository().findAll()){
             System.out.println(pedido);
         }
