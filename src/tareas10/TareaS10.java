@@ -57,11 +57,7 @@ class LogObserver implements Observer{
 }
 
 class PedidoRepository{
-    private List<Pedido> almacen;
-    
-    public PedidoRepository(){
-        this.almacen = new ArrayList<>();
-    }
+    private List<Pedido> almacen = new ArrayList<>();
     
     public void save(Pedido pedido) {
         almacen.add(pedido);
@@ -98,12 +94,6 @@ class FacturaAdapter implements FacturaService {
     }
 }
 
-class ServicioStock{
-    public boolean validarStock(String producto, int cantidad){
-        return cantidad>0 && cantidad<=15;
-    }
-}
-
 interface ImpuestoStrategy{
     double calcular(double subtotal);
 }
@@ -122,17 +112,12 @@ class ExoneradoStrategy implements ImpuestoStrategy{
     }
 }
 
-class ServicioPedido{
-    private PedidoRepository repository;
-    
-    public ServicioPedido(PedidoRepository repository) {
-        this.repository = repository;
-    }
-    
-    public void registrarPedido(Pedido pedido){
-        repository.save(pedido);
+class ServicioStock{
+    public boolean validarStock(String producto, int cantidad){
+        return cantidad>0 && cantidad<=15;
     }
 }
+
 
 class HiloProcesador extends Thread{
     private String cliente;
@@ -161,18 +146,22 @@ class HiloProcesador extends Thread{
 class PedidoFacade {
     
     private ServicioStock serviciostock;       
-    private ServicioPedido serviciopedido;
     private FacturaService facturaservice;
     private ImpuestoStrategy impuestostrategy;
     private PedidoRepository pedidorepository;
     private List<Observer> observers;
 
-    public PedidoFacade() {
-        this.pedidorepository = new PedidoRepository();
-        this.serviciostock = new ServicioStock();
-        this.serviciopedido = new ServicioPedido(pedidorepository);
-        this.facturaservice = new FacturaAdapter(new LegacyBillingSystem());
+    public PedidoFacade(ServicioStock stock, PedidoRepository repo, FacturaService factura) {
+        this.serviciostock = stock;
+        this.pedidorepository = repo;
+        this.facturaservice = factura;
         this.observers = new ArrayList<>();
+    }
+    
+    public PedidoFacade() {
+        this(new ServicioStock(),
+             new PedidoRepository(),
+             new FacturaAdapter(new LegacyBillingSystem()));
     }
     
     public void agregarObserver(Observer observer) {
@@ -190,7 +179,7 @@ class PedidoFacade {
     }
     
     public PedidoRepository getPedidoRepository(){
-        return this.pedidorepository;
+        return pedidorepository;
     }
     
     public void procesarPedido(String cliente, String producto, int cantidad, double precioUnitario) {
@@ -200,13 +189,17 @@ class PedidoFacade {
             System.out.println("Error: sin stock disponible.");
             return;
         }
-
+        
+        if (impuestostrategy == null) {
+            throw new IllegalStateException("Error: no se configuró la estrategia de impuesto.");
+        }
+        
         double subtotal=precioUnitario*cantidad;
         double igv=impuestostrategy.calcular(subtotal);
         double total=subtotal+igv;
 
         Pedido nuevoPedido = new Pedido(cliente, producto, cantidad, subtotal, igv, total);
-        serviciopedido.registrarPedido(nuevoPedido);
+        pedidorepository.save(nuevoPedido);
 
         System.out.println("----- COMPROBANTE DE COMPRA -----");
         System.out.println("Cliente: " + cliente);
